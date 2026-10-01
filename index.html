@@ -139,7 +139,7 @@
     td { padding:12px 14px; border-bottom:1px solid var(--gray-100); color:var(--gray-700); vertical-align:middle; }
     tr:last-child td { border-bottom:none; }
     tr:hover td { background:var(--gray-50); }
-    .pill-solicitado { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-size:.78rem; font-weight:600; background:var(--primary-light); color:var(--primary-dark); }
+    .pill-solicitado { display:inline-flex; flex-direction:column; gap:2px; padding:6px 12px; border-radius:8px; font-size:.8rem; font-weight:600; background:var(--warning-light); color:var(--warning); border: 1px solid rgba(217,119,6,.2); }
     .days-num { font-weight:700; color:var(--primary); font-size:1rem; }
     .row-actions { display:flex; gap:6px; }
     .btn-icon { background:none; border:1.5px solid var(--gray-300); border-radius:6px; padding:5px 8px; cursor:pointer; font-size:.85rem; color:var(--gray-500); transition:all .15s; }
@@ -490,7 +490,7 @@
     setBtnLoading('submitBtn',false, editId?'💾 Salvar Alterações':'➕ Adicionar Solicitação');
 
     if(error){ showToast(error.message,'error'); return; }
-    showToast(editId?'✅ Atualizado!':'✅ Solicitado!');
+    showToast(editId?'✅ Atualizado!':'✅ Aguardando aprovação!');
     editId=null;
     clearForm();
     await loadRequests();
@@ -520,7 +520,7 @@
       <td>${fmt(r.start_date)}</td>
       <td>${fmt(r.end_date)}</td>
       <td><span class="days-num">${r.days}</span></td>
-      <td><span class="pill-solicitado">📋 Solicitado</span></td>
+      <td><span class="pill-solicitado">⏳ Aguardando aprovação<br><small style="font-size:0.7rem;font-weight:normal;opacity:0.8">Solicitar no Portal do RH</small></span></td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.notes||''}">${r.notes||'—'}</td>
       <td><div class="row-actions">
         <button class="btn-icon edit" title="Editar" onclick="editRow('${r.id}')">✏️</button>
@@ -572,10 +572,10 @@
     if(requests.length===0){ showToast('Nenhuma solicitação para exportar.','error'); return; }
     const data=[
       ['#','Funcionário','Data Início','Data Término','Dias Corridos','Situação','Observações','Cadastrado em'],
-      ...requests.map((r,i)=>[i+1,r.employee_name,fmt(r.start_date),fmt(r.end_date),r.days,'Solicitado',r.notes||'',new Date(r.created_at).toLocaleDateString('pt-BR')])
+      ...requests.map((r,i)=>[i+1,r.employee_name,fmt(r.start_date),fmt(r.end_date),r.days,'Aguardando aprovação - Solicitar no Portal do RH',r.notes||'',new Date(r.created_at).toLocaleDateString('pt-BR')])
     ];
     const ws=XLSX.utils.aoa_to_sheet(data);
-    ws['!cols']=[{wch:4},{wch:38},{wch:14},{wch:14},{wch:14},{wch:12},{wch:30},{wch:16}];
+    ws['!cols']=[{wch:4},{wch:38},{wch:14},{wch:14},{wch:14},{wch:50},{wch:30},{wch:16}];
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Férias');
     const ws2=XLSX.utils.aoa_to_sheet([
