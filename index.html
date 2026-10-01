@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Solicitação de Férias</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #dbeafe;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --danger: #dc2626;
+      --danger-light: #fee2e2;
+      --warning: #d97706;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    .container { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Header */
+    .header { text-align: center; }
+    .header h1 { color:#fff; font-size:2rem; font-weight:700; text-shadow:0 2px 4px rgba(0,0,0,.2); }
+    .header p  { color:rgba(255,255,255,.8); margin-top:6px; }
+
+    /* Card */
+    .card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow-lg); overflow:hidden; }
+    .section-head {
+      padding:18px 26px; border-bottom:1px solid var(--gray-200); background:var(--gray-50);
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    }
+    .section-head h2 { font-size:1.05rem; font-weight:700; color:var(--gray-900); display:flex; align-items:center; gap:8px; }
+    .section-body { padding:26px; }
+
+    /* Form */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    @media(max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field.full { grid-column:1/-1; }
+    label { font-size:.8rem; font-weight:700; color:var(--gray-700); text-transform:uppercase; letter-spacing:.4px; }
+    input, select {
+      padding:10px 14px; border:1.5px solid var(--gray-300); border-radius:8px;
+      font-size:.95rem; color:var(--gray-900); background:#fff;
+      transition:border-color .2s, box-shadow .2s; outline:none; width:100%;
+    }
+    input:focus, select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.15); }
+    input[readonly] { background:var(--gray-100); color:var(--gray-500); cursor:not-allowed; }
+    .select-row { display:flex; gap:8px; }
+    .select-row select { flex:1; }
+    .btn-add-inline {
+      padding:10px 14px; background:var(--primary); color:#fff;
+      border:none; border-radius:8px; cursor:pointer; font-size:1.1rem; font-weight:700;
+      transition:background .2s; white-space:nowrap;
+    }
+    .btn-add-inline:hover { background:var(--primary-dark); }
+
+    /* Days selector */
+    .days-selector { display:flex; gap:10px; }
+    .day-btn {
+      flex:1; padding:10px; border:2px solid var(--gray-300); border-radius:8px;
+      background:#fff; font-size:1rem; font-weight:700; color:var(--gray-500);
+      cursor:pointer; transition:all .2s; text-align:center;
+    }
+    .day-btn:hover  { border-color:var(--primary); color:var(--primary); }
+    .day-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+
+    .days-badge {
+      display:none; align-items:center; gap:6px;
+      background:var(--primary-light); color:var(--primary-dark);
+      font-weight:700; font-size:.95rem; padding:8px 14px; border-radius:999px; margin-top:4px; width:fit-content;
+    }
+
+    /* Buttons */
+    .btn {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 20px; border-radius:8px; font-size:.95rem; font-weight:600;
+      cursor:pointer; border:none; transition:all .2s;
+    }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none !important; }
+    .btn-primary { background:var(--primary); color:#fff; }
+    .btn-primary:hover:not(:disabled) { background:var(--primary-dark); transform:translateY(-1px); box-shadow:var(--shadow); }
+    .btn-success { background:var(--success); color:#fff; }
+    .btn-success:hover:not(:disabled) { background:#15803d; transform:translateY(-1px); }
+    .btn-danger  { background:var(--danger);  color:#fff; }
+    .btn-danger:hover:not(:disabled)  { background:#b91c1c; }
+    .btn-outline { background:#fff; color:var(--gray-700); border:1.5px solid var(--gray-300); }
+    .btn-outline:hover:not(:disabled) { background:var(--gray-50); transform:translateY(-1px); }
+    .actions { display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
+
+    /* Employee chips */
+    .emp-list { display:flex; flex-wrap:wrap; gap:8px; min-height:38px; }
+    .emp-chip {
+      display:flex; align-items:center; gap:6px;
+      background:var(--primary-light); color:var(--primary-dark);
+      border-radius:999px; padding:5px 12px 5px 14px; font-size:.87rem; font-weight:600;
+    }
+    .emp-chip button {
+      background:none; border:none; cursor:pointer; color:var(--primary-dark);
+      font-size:1rem; line-height:1; padding:0; opacity:.6; transition:opacity .15s;
+    }
+    .emp-chip button:hover { opacity:1; color:var(--danger); }
+    .emp-empty { color:var(--gray-500); font-size:.9rem; font-style:italic; align-self:center; }
+
+    /* Stats */
+    .stats-bar { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; }
+    @media(max-width:480px){ .stats-bar{ grid-template-columns:1fr; } }
+    .stat-card { background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:14px 16px; text-align:center; }
+    .stat-card .num { font-size:1.8rem; font-weight:700; color:var(--primary); }
+    .stat-card .lbl { font-size:.75rem; color:var(--gray-500); text-transform:uppercase; letter-spacing:.4px; margin-top:2px; }
+
+    /* Table */
+    .table-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+    .table-header h2 { font-size:1.05rem; font-weight:700; color:var(--gray-900); display:flex; align-items:center; gap:8px; }
+    .badge-count { background:var(--primary); color:#fff; font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:999px; }
+    .filters { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .filters input { max-width:240px; padding:8px 12px; font-size:.875rem; }
+    .table-wrapper { overflow-x:auto; border-radius:8px; border:1px solid var(--gray-200); }
+    table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    thead { background:var(--gray-50); }
+    th { padding:12px 14px; text-align:left; font-weight:700; color:var(--gray-700); text-transform:uppercase; font-size:.72rem; letter-spacing:.5px; border-bottom:1px solid var(--gray-200); white-space:nowrap; }
+    td { padding:12px 14px; border-bottom:1px solid var(--gray-100); color:var(--gray-700); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--gray-50); }
+    .pill-solicitado { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-size:.78rem; font-weight:600; background:var(--primary-light); color:var(--primary-dark); }
+    .days-num { font-weight:700; color:var(--primary); font-size:1rem; }
+    .row-actions { display:flex; gap:6px; }
+    .btn-icon { background:none; border:1.5px solid var(--gray-300); border-radius:6px; padding:5px 8px; cursor:pointer; font-size:.85rem; color:var(--gray-500); transition:all .15s; }
+    .btn-icon:hover       { color:var(--danger); border-color:var(--danger); background:var(--danger-light); }
+    .btn-icon.edit:hover  { color:var(--primary); border-color:var(--primary); background:var(--primary-light); }
+
+    /* Empty / loading */
+    .empty-state { text-align:center; padding:50px 20px; color:var(--gray-500); }
+    .empty-state .icon { font-size:2.8rem; margin-bottom:10px; }
+    .loading-row td { text-align:center; color:var(--gray-500); padding:30px; }
+
+    /* Spinner */
+    .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+    @keyframes spin { to{ transform:rotate(360deg); } }
+
+    /* Toast */
+    .toast { position:fixed; bottom:24px; right:24px; background:var(--gray-900); color:#fff; padding:12px 20px; border-radius:8px; font-size:.9rem; font-weight:500; box-shadow:var(--shadow-lg); transform:translateY(80px); opacity:0; transition:all .3s; z-index:999; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.success { background:var(--success); }
+    .toast.error   { background:var(--danger); }
+
+    /* Modal */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .25s; }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal { background:#fff; border-radius:var(--radius); padding:28px; max-width:440px; width:90%; box-shadow:var(--shadow-lg); transform:scale(.95); transition:transform .25s; }
+    .modal-overlay.open .modal { transform:scale(1); }
+    .modal h3 { font-size:1.1rem; font-weight:700; color:var(--gray-900); margin-bottom:16px; }
+    .modal-actions { display:flex; gap:10px; margin-top:20px; justify-content:flex-end; }
+
+    /* Connection status */
+    .conn-badge { display:inline-flex; align-items:center; gap:5px; font-size:.78rem; font-weight:600; padding:3px 10px; border-radius:999px; }
+    .conn-badge.ok  { background:var(--success-light); color:var(--success); }
+    .conn-badge.err { background:var(--danger-light);  color:var(--danger);  }
+    .conn-dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🏖️ Sistema de Férias</h1>
+    <p>Gerencie as solicitações de férias da equipe</p>
+  </div>
+
+  <!-- Funcionários -->
+  <div class="card">
+    <div class="section-head">
+      <h2>👥 Funcionários Cadastrados <span id="connBadge" class="conn-badge"><span class="conn-dot"></span> conectando...</span></h2>
+      <button class="btn btn-primary" onclick="openAddEmpModal()">➕ Novo Funcionário</button>
+    </div>
+    <div class="section-body">
+      <div class="emp-list" id="empList"><span class="emp-empty">Carregando...</span></div>
+    </div>
+  </div>
+
+  <!-- Nova Solicitação -->
+  <div class="card">
+    <div class="section-head"><h2>📝 Nova Solicitação</h2></div>
+    <div class="section-body">
+      <form id="vacationForm" novalidate>
+        <div class="form-grid">
+
+          <div class="field full">
+            <label for="name">Funcionário</label>
+            <div class="select-row">
+              <select id="name" required>
+                <option value="">— Selecione —</option>
+              </select>
+              <button type="button" class="btn-add-inline" title="Novo funcionário" onclick="openAddEmpModal()">＋</button>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label>Quantidade de Dias</label>
+            <div class="days-selector">
+              <button type="button" class="day-btn" data-days="20" onclick="selectDays(20)">🌴 20 dias</button>
+              <button type="button" class="day-btn" data-days="30" onclick="selectDays(30)">🌴 30 dias</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="startDate">Data de Início</label>
+            <input type="date" id="startDate" required />
+          </div>
+
+          <div class="field">
+            <label for="endDate">Data de Término</label>
+            <input type="date" id="endDate" readonly />
+          </div>
+
+          <div class="days-badge" id="daysBadge" style="grid-column:1/-1">
+            📅 <span id="daysCount">0</span> dias corridos
+          </div>
+
+          <div class="field full">
+            <label for="notes">Observações</label>
+            <input type="text" id="notes" placeholder="Opcional..." />
+          </div>
+
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">➕ Adicionar Solicitação</button>
+          <button type="button" class="btn btn-outline" onclick="clearForm()">🔄 Limpar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lista -->
+  <div class="card">
+    <div class="section-body">
+      <div class="stats-bar">
+        <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total de Solicitações</div></div>
+        <div class="stat-card"><div class="num" id="statDays" style="color:var(--warning)">—</div><div class="lbl">Dias Corridos Totais</div></div>
+      </div>
+      <div class="table-header">
+        <h2>📋 Solicitações <span class="badge-count" id="countBadge">0</span></h2>
+        <button class="btn btn-success" onclick="exportExcel()">📊 Exportar Excel</button>
+      </div>
+      <div class="filters">
+        <input type="text" id="filterName" placeholder="🔍 Buscar por nome..." oninput="renderTable()" />
+      </div>
+      <div class="table-wrapper">
+        <table id="vacationTable" style="display:none">
+          <thead>
+            <tr>
+              <th>#</th><th>Funcionário</th><th>Início</th><th>Término</th>
+              <th>Dias Corridos</th><th>Situação</th><th>Observações</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr class="loading-row"><td colspan="8">⏳ Carregando...</td></tr>
+          </tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <div class="icon">🏖️</div>
+          <p>Nenhuma solicitação cadastrada ainda.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- Modal: Novo Funcionário -->
+<div class="modal-overlay" id="addEmpModal">
+  <div class="modal">
+    <h3>👤 Novo Funcionário</h3>
+    <div class="field">
+      <label for="newEmpName">Nome completo</label>
+      <input type="text" id="newEmpName" placeholder="Ex: JOÃO DA SILVA" style="margin-top:6px" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEmpModal()">Cancelar</button>
+      <button class="btn btn-primary" id="saveEmpBtn" onclick="saveNewEmployee()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Excluir Solicitação -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>🗑️ Confirmar Exclusão</h3>
+    <p id="deleteModalText" style="color:var(--gray-700)"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Excluir Funcionário -->
+<div class="modal-overlay" id="deleteEmpModal">
+  <div class="modal">
+    <h3>🗑️ Remover Funcionário</h3>
+    <p id="deleteEmpText" style="color:var(--gray-700)"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDeleteEmpModal()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmDeleteEmpBtn" onclick="confirmDeleteEmp()">Remover</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── Supabase ─────────────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://ijupwbwiziugkiymakax.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdXB3Yndpeml1Z2tpeW1ha2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDk1ODUsImV4cCI6MjA4ODM4NTU4NX0.JXcKMfFg_2k6mXxpulekuLStb2PFfjRvaYNyAcPw6kA';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ─── State ────────────────────────────────────────────────────────────────
+  let employees     = [];
+  let requests      = [];
+  let deleteId      = null;
+  let deleteEmpId   = null;
+  let editId        = null;
+  let selectedDays  = null;
+
+  // ─── Utilities ────────────────────────────────────────────────────────────
+  const fmt = str => { if(!str) return '-'; const [y,m,d]=str.split('-'); return `${d}/${m}/${y}`; };
+  const addDays = (s,n) => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n-1); return d.toISOString().slice(0,10); };
+  const diffDays = (s,e) => Math.round((new Date(e+'T00:00:00')-new Date(s+'T00:00:00'))/86400000)+1;
+
+  function showToast(msg, type='success') {
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.className=`toast ${type} show`;
+    setTimeout(()=>t.className='toast',3000);
+  }
+
+  function setConnBadge(ok) {
+    const b=document.getElementById('connBadge');
+    b.className=`conn-badge ${ok?'ok':'err'}`;
+    b.innerHTML=`<span class="conn-dot"></span> ${ok?'Supabase conectado':'Erro de conexão'}`;
+  }
+
+  function setBtnLoading(id, loading, text) {
+    const btn=document.getElementById(id);
+    if(!btn) return;
+    btn.disabled=loading;
+    btn.innerHTML=loading?`<span class="spinner"></span>`:text;
+  }
+
+  // ─── Employees ────────────────────────────────────────────────────────────
+  async function loadEmployees() {
+    const {data,error}=await db.from('employees').select('*').order('name');
+    if(error){ setConnBadge(false); showToast('Erro ao carregar funcionários','error'); return; }
+    setConnBadge(true);
+    employees=data;
+    renderEmployees();
+  }
+
+  function renderEmployees() {
+    const list=document.getElementById('empList');
+    const sel =document.getElementById('name');
+    const cur =sel.value;
+
+    if(employees.length===0){
+      list.innerHTML='<span class="emp-empty">Nenhum funcionário cadastrado.</span>';
+    } else {
+      list.innerHTML=employees.map(e=>`
+        <span class="emp-chip">
+          ${e.name}
+          <button title="Remover" onclick="openDeleteEmpModal('${e.id}','${e.name.replace(/'/g,"\\'")}')">✕</button>
+        </span>`).join('');
+    }
+
+    sel.innerHTML='<option value="">— Selecione —</option>'+
+      [...employees].sort((a,b)=>a.name.localeCompare(b.name))
+        .map(e=>`<option value="${e.name}" ${e.name===cur?'selected':''}>${e.name}</option>`).join('');
+  }
+
+  function openAddEmpModal(){
+    document.getElementById('newEmpName').value='';
+    document.getElementById('addEmpModal').classList.add('open');
+    setTimeout(()=>document.getElementById('newEmpName').focus(),100);
+  }
+  function closeEmpModal(){ document.getElementById('addEmpModal').classList.remove('open'); }
+
+  async function saveNewEmployee(){
+    const name=document.getElementById('newEmpName').value.trim().toUpperCase();
+    if(!name){ showToast('Informe o nome.','error'); return; }
+    setBtnLoading('saveEmpBtn',true,'');
+    const {error}=await db.from('employees').insert({name});
+    setBtnLoading('saveEmpBtn',false,'Salvar');
+    if(error){ showToast(error.code==='23505'?'Funcionário já cadastrado.':error.message,'error'); return; }
+    closeEmpModal();
+    await loadEmployees();
+    showToast(`✅ ${name} cadastrado!`);
+  }
+
+  document.getElementById('newEmpName').addEventListener('keydown',e=>{ if(e.key==='Enter') saveNewEmployee(); });
+
+  function openDeleteEmpModal(id,name){
+    deleteEmpId=id;
+    document.getElementById('deleteEmpText').textContent=`Deseja remover "${name}" da lista?`;
+    document.getElementById('deleteEmpModal').classList.add('open');
+  }
+  function closeDeleteEmpModal(){ document.getElementById('deleteEmpModal').classList.remove('open'); deleteEmpId=null; }
+
+  async function confirmDeleteEmp(){
+    if(!deleteEmpId) return;
+    setBtnLoading('confirmDeleteEmpBtn',true,'');
+    const {error}=await db.from('employees').delete().eq('id',deleteEmpId);
+    setBtnLoading('confirmDeleteEmpBtn',false,'Remover');
+    if(error){ showToast(error.message,'error'); return; }
+    closeDeleteEmpModal();
+    await loadEmployees();
+    showToast('🗑️ Funcionário removido.','error');
+  }
+
+  // ─── Day selector ─────────────────────────────────────────────────────────
+  function selectDays(n){
+    selectedDays=n;
+    document.querySelectorAll('.day-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.days)===n));
+    recalcEndDate();
+  }
+  function recalcEndDate(){
+    const start=document.getElementById('startDate').value;
+    const badge=document.getElementById('daysBadge');
+    if(start&&selectedDays){
+      document.getElementById('endDate').value=addDays(start,selectedDays);
+      document.getElementById('daysCount').textContent=selectedDays;
+      badge.style.display='inline-flex';
+    } else {
+      document.getElementById('endDate').value='';
+      badge.style.display='none';
+    }
+  }
+  document.getElementById('startDate').addEventListener('change',recalcEndDate);
+
+  // ─── Vacation requests ────────────────────────────────────────────────────
+  async function loadRequests(){
+    const {data,error}=await db.from('vacation_requests').select('*').order('created_at',{ascending:false});
+    if(error){ showToast('Erro ao carregar solicitações','error'); return; }
+    requests=data;
+    renderTable();
+  }
+
+  document.getElementById('vacationForm').addEventListener('submit',async function(e){
+    e.preventDefault();
+    const name =document.getElementById('name').value;
+    const start=document.getElementById('startDate').value;
+    const end  =document.getElementById('endDate').value;
+    const notes=document.getElementById('notes').value.trim();
+
+    if(!name)        { showToast('Selecione um funcionário.','error'); return; }
+    if(!selectedDays){ showToast('Selecione 20 ou 30 dias.','error'); return; }
+    if(!start)       { showToast('Informe a data de início.','error'); return; }
+
+    const days=diffDays(start,end);
+    const payload={ employee_name:name, start_date:start, end_date:end, days, notes };
+
+    setBtnLoading('submitBtn',true,'');
+    let error;
+    if(editId){
+      ({error}=await db.from('vacation_requests').update(payload).eq('id',editId));
+    } else {
+      ({error}=await db.from('vacation_requests').insert(payload));
+    }
+    setBtnLoading('submitBtn',false, editId?'💾 Salvar Alterações':'➕ Adicionar Solicitação');
+
+    if(error){ showToast(error.message,'error'); return; }
+    showToast(editId?'✅ Atualizado!':'✅ Solicitado!');
+    editId=null;
+    clearForm();
+    await loadRequests();
+  });
+
+  function clearForm(){
+    ['name','startDate','endDate','notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('daysBadge').style.display='none';
+    document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
+    selectedDays=null; editId=null;
+    document.getElementById('submitBtn').textContent='➕ Adicionar Solicitação';
+  }
+
+  function renderTable(){
+    const filter=document.getElementById('filterName').value.toLowerCase();
+    const filtered=requests.filter(r=>r.employee_name.toLowerCase().includes(filter));
+    const tbody=document.getElementById('tableBody');
+    const empty=document.getElementById('emptyState');
+    const table=document.getElementById('vacationTable');
+
+    if(filtered.length===0){ table.style.display='none'; empty.style.display='block'; }
+    else                   { table.style.display='table';empty.style.display='none'; }
+
+    tbody.innerHTML=filtered.map((r,i)=>`<tr>
+      <td style="color:var(--gray-500);font-size:.8rem">${i+1}</td>
+      <td><strong>${r.employee_name}</strong></td>
+      <td>${fmt(r.start_date)}</td>
+      <td>${fmt(r.end_date)}</td>
+      <td><span class="days-num">${r.days}</span></td>
+      <td><span class="pill-solicitado">📋 Solicitado</span></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.notes||''}">${r.notes||'—'}</td>
+      <td><div class="row-actions">
+        <button class="btn-icon edit" title="Editar" onclick="editRow('${r.id}')">✏️</button>
+        <button class="btn-icon" title="Excluir" onclick="openDeleteModal('${r.id}','${r.employee_name.replace(/'/g,"\\'")}')">🗑️</button>
+      </div></td>
+    </tr>`).join('');
+
+    document.getElementById('countBadge').textContent=requests.length;
+    document.getElementById('statTotal').textContent =requests.length;
+    document.getElementById('statDays').textContent  =requests.reduce((a,r)=>a+r.days,0);
+  }
+
+  function editRow(id){
+    const r=requests.find(x=>x.id===id);
+    if(!r) return;
+    document.getElementById('name').value     =r.employee_name;
+    document.getElementById('notes').value    =r.notes||'';
+    selectedDays=r.days;
+    document.querySelectorAll('.day-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.days)===r.days));
+    document.getElementById('startDate').value=r.start_date;
+    document.getElementById('endDate').value  =r.end_date;
+    document.getElementById('daysCount').textContent=r.days;
+    document.getElementById('daysBadge').style.display='inline-flex';
+    editId=id;
+    document.getElementById('submitBtn').textContent='💾 Salvar Alterações';
+    document.querySelector('.card').scrollIntoView({behavior:'smooth'});
+  }
+
+  function openDeleteModal(id,name){
+    deleteId=id;
+    document.getElementById('deleteModalText').textContent=`Deseja remover a solicitação de "${name}"?`;
+    document.getElementById('deleteModal').classList.add('open');
+  }
+  function closeDeleteModal(){ document.getElementById('deleteModal').classList.remove('open'); deleteId=null; }
+
+  async function confirmDelete(){
+    if(!deleteId) return;
+    setBtnLoading('confirmDeleteBtn',true,'');
+    const {error}=await db.from('vacation_requests').delete().eq('id',deleteId);
+    setBtnLoading('confirmDeleteBtn',false,'Excluir');
+    if(error){ showToast(error.message,'error'); return; }
+    closeDeleteModal();
+    await loadRequests();
+    showToast('🗑️ Solicitação removida.','error');
+  }
+
+  // ─── Export ───────────────────────────────────────────────────────────────
+  function exportExcel(){
+    if(requests.length===0){ showToast('Nenhuma solicitação para exportar.','error'); return; }
+    const data=[
+      ['#','Funcionário','Data Início','Data Término','Dias Corridos','Situação','Observações','Cadastrado em'],
+      ...requests.map((r,i)=>[i+1,r.employee_name,fmt(r.start_date),fmt(r.end_date),r.days,'Solicitado',r.notes||'',new Date(r.created_at).toLocaleDateString('pt-BR')])
+    ];
+    const ws=XLSX.utils.aoa_to_sheet(data);
+    ws['!cols']=[{wch:4},{wch:38},{wch:14},{wch:14},{wch:14},{wch:12},{wch:30},{wch:16}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Férias');
+    const ws2=XLSX.utils.aoa_to_sheet([
+      ['Resumo Geral'],
+      ['Total de Solicitações',requests.length],
+      ['Total de Dias Corridos',requests.reduce((a,r)=>a+r.days,0)],
+      ['Exportado em',new Date().toLocaleString('pt-BR')],
+    ]);
+    ws2['!cols']=[{wch:28},{wch:20}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Resumo');
+    XLSX.writeFile(wb,`ferias_${new Date().toISOString().slice(0,10)}.xlsx`);
+    showToast('📊 Excel exportado!');
+  }
+
+  // ─── Overlay closes ───────────────────────────────────────────────────────
+  document.getElementById('addEmpModal').addEventListener('click',function(e){if(e.target===this)closeEmpModal();});
+  document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)closeDeleteModal();});
+  document.getElementById('deleteEmpModal').addEventListener('click',function(e){if(e.target===this)closeDeleteEmpModal();});
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+  (async()=>{
+    await Promise.all([loadEmployees(), loadRequests()]);
+  })();
+</script>
+</body>
+</html>
