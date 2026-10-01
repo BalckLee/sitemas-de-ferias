@@ -327,36 +327,42 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ─── Supabase ─────────────────────────────────────────────────────────────
+  // ─── Configuração do Supabase ─────────────────────────────────────────────
   const SUPABASE_URL = 'https://ijupwbwiziugkiymakax.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdXB3Yndpeml1Z2tpeW1ha2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDk1ODUsImV4cCI6MjA4ODM4NTU4NX0.JXcKMfFg_2k6mXxpulekuLStb2PFfjRvaYNyAcPw6kA';
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // ─── State ────────────────────────────────────────────────────────────────
-  let employees     = [];
-  let requests      = [];
-  let deleteId      = null;
-  let deleteEmpId   = null;
-  let editId        = null;
-  let selectedDays  = null;
+  // ─── Estado global da aplicação ───────────────────────────────────────────
+  let employees     = [];   // lista de funcionários carregada do banco
+  let requests      = [];   // lista de solicitações carregada do banco
+  let deleteId      = null; // id da solicitação a ser excluída
+  let deleteEmpId   = null; // id do funcionário a ser excluído
+  let editId        = null; // id da solicitação em edição (null = nova)
+  let selectedDays  = null; // quantidade de dias selecionada (20 ou 30)
 
-  // ─── Utilities ────────────────────────────────────────────────────────────
+  // ─── Funções utilitárias ──────────────────────────────────────────────────
+  // Formata data de yyyy-mm-dd para dd/mm/yyyy
   const fmt = str => { if(!str) return '-'; const [y,m,d]=str.split('-'); return `${d}/${m}/${y}`; };
+  // Adiciona N dias corridos a uma data e retorna no formato yyyy-mm-dd
   const addDays = (s,n) => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n-1); return d.toISOString().slice(0,10); };
+  // Calcula a diferença em dias corridos entre duas datas (inclusive)
   const diffDays = (s,e) => Math.round((new Date(e+'T00:00:00')-new Date(s+'T00:00:00'))/86400000)+1;
 
+  // Exibe uma notificação temporária na tela
   function showToast(msg, type='success') {
     const t=document.getElementById('toast');
     t.textContent=msg; t.className=`toast ${type} show`;
     setTimeout(()=>t.className='toast',3000);
   }
 
+  // Atualiza o badge de status da conexão com o Supabase
   function setConnBadge(ok) {
     const b=document.getElementById('connBadge');
     b.className=`conn-badge ${ok?'ok':'err'}`;
     b.innerHTML=`<span class="conn-dot"></span> ${ok?'Supabase conectado':'Erro de conexão'}`;
   }
 
+  // Coloca um botão em estado de carregamento (spinner) ou restaura seu texto
   function setBtnLoading(id, loading, text) {
     const btn=document.getElementById(id);
     if(!btn) return;
@@ -364,7 +370,7 @@
     btn.innerHTML=loading?`<span class="spinner"></span>`:text;
   }
 
-  // ─── Employees ────────────────────────────────────────────────────────────
+  // ─── Funcionários ─────────────────────────────────────────────────────────
   async function loadEmployees() {
     const {data,error}=await db.from('employees').select('*').order('name');
     if(error){ setConnBadge(false); showToast('Erro ao carregar funcionários','error'); return; }
@@ -432,7 +438,7 @@
     showToast('🗑️ Funcionário removido.','error');
   }
 
-  // ─── Day selector ─────────────────────────────────────────────────────────
+  // ─── Seletor de quantidade de dias ────────────────────────────────────────
   function selectDays(n){
     selectedDays=n;
     document.querySelectorAll('.day-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.days)===n));
@@ -452,7 +458,7 @@
   }
   document.getElementById('startDate').addEventListener('change',recalcEndDate);
 
-  // ─── Vacation requests ────────────────────────────────────────────────────
+  // ─── Solicitações de férias ───────────────────────────────────────────────
   async function loadRequests(){
     const {data,error}=await db.from('vacation_requests').select('*').order('created_at',{ascending:false});
     if(error){ showToast('Erro ao carregar solicitações','error'); return; }
@@ -561,7 +567,7 @@
     showToast('🗑️ Solicitação removida.','error');
   }
 
-  // ─── Export ───────────────────────────────────────────────────────────────
+  // ─── Exportação para Excel ────────────────────────────────────────────────
   function exportExcel(){
     if(requests.length===0){ showToast('Nenhuma solicitação para exportar.','error'); return; }
     const data=[
@@ -584,12 +590,12 @@
     showToast('📊 Excel exportado!');
   }
 
-  // ─── Overlay closes ───────────────────────────────────────────────────────
+  // ─── Fechamento dos modais ao clicar fora ─────────────────────────────────
   document.getElementById('addEmpModal').addEventListener('click',function(e){if(e.target===this)closeEmpModal();});
   document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)closeDeleteModal();});
   document.getElementById('deleteEmpModal').addEventListener('click',function(e){if(e.target===this)closeDeleteEmpModal();});
 
-  // ─── Init ─────────────────────────────────────────────────────────────────
+  // ─── Inicialização da aplicação ───────────────────────────────────────────
   (async()=>{
     await Promise.all([loadEmployees(), loadRequests()]);
   })();

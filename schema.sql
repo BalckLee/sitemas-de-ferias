@@ -1,6 +1,7 @@
 -- ================================================================
--- Sistema de Férias — Schema Supabase
--- Execute este arquivo no SQL Editor do Supabase
+-- Sistema de Férias — Estrutura do Banco de Dados (Supabase)
+-- Execute este arquivo no SQL Editor do Supabase para criar
+-- todas as tabelas, políticas de acesso e dados iniciais.
 -- ================================================================
 
 -- 1. Tabela de funcionários
@@ -21,7 +22,7 @@ create table if not exists public.vacation_requests (
   created_at    timestamptz default now()
 );
 
--- 3. Row Level Security — permite acesso anônimo (app interno)
+-- 3. Segurança em nível de linha (RLS) — permite acesso anônimo (app interno)
 alter table public.employees        enable row level security;
 alter table public.vacation_requests enable row level security;
 
