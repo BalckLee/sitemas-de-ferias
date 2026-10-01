@@ -3,51 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Solicitação de Férias</title>
+  <title>🏖️ Sistema de Solicitação de Férias</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏖️</text></svg>">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --primary-light: #dbeafe;
-      --success: #16a34a;
-      --success-light: #dcfce7;
-      --danger: #dc2626;
-      --danger-light: #fee2e2;
-      --warning: #d97706;
-      --gray-50: #f9fafb;
-      --gray-100: #f3f4f6;
-      --gray-200: #e5e7eb;
-      --gray-300: #d1d5db;
-      --gray-500: #6b7280;
-      --gray-700: #374151;
-      --gray-900: #111827;
+      --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+      --success: #16a34a; --success-light: #dcfce7;
+      --danger: #dc2626; --danger-light: #fee2e2;
+      --warning: #d97706; --warning-light: #fef3c7;
+      --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+      --gray-300: #d1d5db; --gray-500: #6b7280; --gray-700: #374151; --gray-900: #111827;
       --radius: 12px;
       --shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
       --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 24px 16px;
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 24px 16px; }
+
+    /* Login Screen */
+    #loginScreen {
+      position: fixed; inset: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 2000;
     }
-    .container { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    .login-box {
+      background: #fff; padding: 40px; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+      width: 100%; max-width: 400px; text-align: center;
+    }
+    .login-box h2 { font-size: 1.5rem; color: var(--gray-900); margin-bottom: 24px; }
+    .login-box .icon { font-size: 3rem; margin-bottom: 16px; }
+    .login-box .field { margin-bottom: 16px; text-align: left; }
+    .login-box input { width: 100%; padding: 12px; border: 1.5px solid var(--gray-300); border-radius: 8px; font-size: 1rem; }
+    .login-box button { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .2s; }
+    .login-box button:hover { background: var(--primary-dark); }
+    .error-msg { color: var(--danger); font-size: .85rem; margin-bottom: 16px; min-height: 20px; font-weight: 600; }
+
+    /* Main App */
+    #appContainer { display: none; max-width: 960px; margin: 0 auto; flex-direction: column; gap: 20px; }
 
     /* Header */
-    .header { text-align: center; }
+    .header { text-align: center; position: relative; }
     .header h1 { color:#fff; font-size:2rem; font-weight:700; text-shadow:0 2px 4px rgba(0,0,0,.2); }
     .header p  { color:rgba(255,255,255,.8); margin-top:6px; }
+    .user-badge {
+      position: absolute; top: 0; right: 0; background: rgba(255,255,255,0.2); color: #fff;
+      padding: 6px 12px; border-radius: 999px; font-size: .85rem; font-weight: 600; backdrop-filter: blur(4px);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .user-badge button { background: none; border: none; color: #fff; cursor: pointer; opacity: 0.8; font-weight: bold; }
+    .user-badge button:hover { opacity: 1; text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .header { padding-top: 40px; }
+      .user-badge { top: -20px; left: 50%; transform: translateX(-50%); right: auto; width: max-content; }
+    }
 
     /* Card */
     .card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow-lg); overflow:hidden; }
-    .section-head {
-      padding:18px 26px; border-bottom:1px solid var(--gray-200); background:var(--gray-50);
-      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
-    }
+    .section-head { padding:18px 26px; border-bottom:1px solid var(--gray-200); background:var(--gray-50); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
     .section-head h2 { font-size:1.05rem; font-weight:700; color:var(--gray-900); display:flex; align-items:center; gap:8px; }
     .section-body { padding:26px; }
 
@@ -57,44 +71,23 @@
     .field { display:flex; flex-direction:column; gap:6px; }
     .field.full { grid-column:1/-1; }
     label { font-size:.8rem; font-weight:700; color:var(--gray-700); text-transform:uppercase; letter-spacing:.4px; }
-    input, select {
-      padding:10px 14px; border:1.5px solid var(--gray-300); border-radius:8px;
-      font-size:.95rem; color:var(--gray-900); background:#fff;
-      transition:border-color .2s, box-shadow .2s; outline:none; width:100%;
-    }
+    input, select { padding:10px 14px; border:1.5px solid var(--gray-300); border-radius:8px; font-size:.95rem; color:var(--gray-900); background:#fff; transition:border-color .2s, box-shadow .2s; outline:none; width:100%; }
     input:focus, select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.15); }
     input[readonly] { background:var(--gray-100); color:var(--gray-500); cursor:not-allowed; }
     .select-row { display:flex; gap:8px; }
     .select-row select { flex:1; }
-    .btn-add-inline {
-      padding:10px 14px; background:var(--primary); color:#fff;
-      border:none; border-radius:8px; cursor:pointer; font-size:1.1rem; font-weight:700;
-      transition:background .2s; white-space:nowrap;
-    }
+    .btn-add-inline { padding:10px 14px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:1.1rem; font-weight:700; transition:background .2s; white-space:nowrap; }
     .btn-add-inline:hover { background:var(--primary-dark); }
 
     /* Days selector */
     .days-selector { display:flex; gap:10px; }
-    .day-btn {
-      flex:1; padding:10px; border:2px solid var(--gray-300); border-radius:8px;
-      background:#fff; font-size:1rem; font-weight:700; color:var(--gray-500);
-      cursor:pointer; transition:all .2s; text-align:center;
-    }
+    .day-btn { flex:1; padding:10px; border:2px solid var(--gray-300); border-radius:8px; background:#fff; font-size:1rem; font-weight:700; color:var(--gray-500); cursor:pointer; transition:all .2s; text-align:center; }
     .day-btn:hover  { border-color:var(--primary); color:var(--primary); }
     .day-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; }
-
-    .days-badge {
-      display:none; align-items:center; gap:6px;
-      background:var(--primary-light); color:var(--primary-dark);
-      font-weight:700; font-size:.95rem; padding:8px 14px; border-radius:999px; margin-top:4px; width:fit-content;
-    }
+    .days-badge { display:none; align-items:center; gap:6px; background:var(--primary-light); color:var(--primary-dark); font-weight:700; font-size:.95rem; padding:8px 14px; border-radius:999px; margin-top:4px; width:fit-content; }
 
     /* Buttons */
-    .btn {
-      display:inline-flex; align-items:center; gap:8px;
-      padding:10px 20px; border-radius:8px; font-size:.95rem; font-weight:600;
-      cursor:pointer; border:none; transition:all .2s;
-    }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:8px; font-size:.95rem; font-weight:600; cursor:pointer; border:none; transition:all .2s; }
     .btn:disabled { opacity:.5; cursor:not-allowed; transform:none !important; }
     .btn-primary { background:var(--primary); color:#fff; }
     .btn-primary:hover:not(:disabled) { background:var(--primary-dark); transform:translateY(-1px); box-shadow:var(--shadow); }
@@ -108,21 +101,14 @@
 
     /* Employee chips */
     .emp-list { display:flex; flex-wrap:wrap; gap:8px; min-height:38px; }
-    .emp-chip {
-      display:flex; align-items:center; gap:6px;
-      background:var(--primary-light); color:var(--primary-dark);
-      border-radius:999px; padding:5px 12px 5px 14px; font-size:.87rem; font-weight:600;
-    }
-    .emp-chip button {
-      background:none; border:none; cursor:pointer; color:var(--primary-dark);
-      font-size:1rem; line-height:1; padding:0; opacity:.6; transition:opacity .15s;
-    }
+    .emp-chip { display:flex; align-items:center; gap:6px; background:var(--primary-light); color:var(--primary-dark); border-radius:999px; padding:5px 12px 5px 14px; font-size:.87rem; font-weight:600; }
+    .emp-chip button { background:none; border:none; cursor:pointer; color:var(--primary-dark); font-size:1rem; line-height:1; padding:0; opacity:.6; transition:opacity .15s; }
     .emp-chip button:hover { opacity:1; color:var(--danger); }
     .emp-empty { color:var(--gray-500); font-size:.9rem; font-style:italic; align-self:center; }
 
     /* Stats */
-    .stats-bar { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; }
-    @media(max-width:480px){ .stats-bar{ grid-template-columns:1fr; } }
+    .stats-bar { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+    @media(max-width:600px){ .stats-bar{ grid-template-columns:1fr; } }
     .stat-card { background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:14px 16px; text-align:center; }
     .stat-card .num { font-size:1.8rem; font-weight:700; color:var(--primary); }
     .stat-card .lbl { font-size:.75rem; color:var(--gray-500); text-transform:uppercase; letter-spacing:.4px; margin-top:2px; }
@@ -131,8 +117,10 @@
     .table-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
     .table-header h2 { font-size:1.05rem; font-weight:700; color:var(--gray-900); display:flex; align-items:center; gap:8px; }
     .badge-count { background:var(--primary); color:#fff; font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:999px; }
-    .filters { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .filters { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
     .filters input { max-width:240px; padding:8px 12px; font-size:.875rem; }
+    .filters select { max-width:200px; padding:8px 12px; font-size:.875rem; }
+    
     .table-wrapper { overflow-x:auto; border-radius:8px; border:1px solid var(--gray-200); }
     table { width:100%; border-collapse:collapse; font-size:.9rem; }
     thead { background:var(--gray-50); }
@@ -140,54 +128,90 @@
     td { padding:12px 14px; border-bottom:1px solid var(--gray-100); color:var(--gray-700); vertical-align:middle; }
     tr:last-child td { border-bottom:none; }
     tr:hover td { background:var(--gray-50); }
-    .pill-solicitado { display:inline-flex; flex-direction:column; gap:2px; padding:6px 12px; border-radius:8px; font-size:.8rem; font-weight:600; background:var(--warning-light); color:var(--warning); border: 1px solid rgba(217,119,6,.2); }
+    
+    /* Pills */
+    .pill-status { display:inline-flex; flex-direction:column; gap:2px; padding:6px 12px; border-radius:8px; font-size:.8rem; font-weight:600; border: 1px solid transparent; }
+    .pill-status.aguardando { background:var(--warning-light); color:var(--warning); border-color: rgba(217,119,6,.2); }
+    .pill-status.aprovado { background:var(--success-light); color:var(--success); border-color: rgba(22,163,74,.2); }
+    .pill-status.reprovado { background:var(--danger-light); color:var(--danger); border-color: rgba(220,38,38,.2); }
     .days-num { font-weight:700; color:var(--primary); font-size:1rem; }
+    
     .row-actions { display:flex; gap:6px; }
     .btn-icon { background:none; border:1.5px solid var(--gray-300); border-radius:6px; padding:5px 8px; cursor:pointer; font-size:.85rem; color:var(--gray-500); transition:all .15s; }
-    .btn-icon:hover       { color:var(--danger); border-color:var(--danger); background:var(--danger-light); }
-    .btn-icon.edit:hover  { color:var(--primary); border-color:var(--primary); background:var(--primary-light); }
+    .btn-icon:hover { color:var(--danger); border-color:var(--danger); background:var(--danger-light); }
+    .btn-icon.edit:hover { color:var(--primary); border-color:var(--primary); background:var(--primary-light); }
+    .btn-icon.approve:hover { color:var(--success); border-color:var(--success); background:var(--success-light); }
 
     /* Empty / loading */
     .empty-state { text-align:center; padding:50px 20px; color:var(--gray-500); }
     .empty-state .icon { font-size:2.8rem; margin-bottom:10px; }
     .loading-row td { text-align:center; color:var(--gray-500); padding:30px; }
-
-    /* Spinner */
     .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
     @keyframes spin { to{ transform:rotate(360deg); } }
 
-    /* Toast */
+    /* Toast & Modals */
     .toast { position:fixed; bottom:24px; right:24px; background:var(--gray-900); color:#fff; padding:12px 20px; border-radius:8px; font-size:.9rem; font-weight:500; box-shadow:var(--shadow-lg); transform:translateY(80px); opacity:0; transition:all .3s; z-index:999; }
     .toast.show { transform:translateY(0); opacity:1; }
     .toast.success { background:var(--success); }
     .toast.error   { background:var(--danger); }
 
-    /* Modal */
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .25s; }
     .modal-overlay.open { opacity:1; pointer-events:all; }
     .modal { background:#fff; border-radius:var(--radius); padding:28px; max-width:440px; width:90%; box-shadow:var(--shadow-lg); transform:scale(.95); transition:transform .25s; }
     .modal-overlay.open .modal { transform:scale(1); }
     .modal h3 { font-size:1.1rem; font-weight:700; color:var(--gray-900); margin-bottom:16px; }
     .modal-actions { display:flex; gap:10px; margin-top:20px; justify-content:flex-end; }
-
-    /* Connection status */
+    
     .conn-badge { display:inline-flex; align-items:center; gap:5px; font-size:.78rem; font-weight:600; padding:3px 10px; border-radius:999px; }
     .conn-badge.ok  { background:var(--success-light); color:var(--success); }
     .conn-badge.err { background:var(--danger-light);  color:var(--danger);  }
     .conn-dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+    /* Role specific UI */
+    .supervisor-only { display: none !important; }
+    body.is-supervisor .supervisor-only { display: flex !important; }
+    body.is-supervisor .supervisor-only-cell { display: table-cell !important; }
+    
+    /* Approvals container in row actions */
+    .approval-actions { display: flex; gap: 4px; padding-right: 8px; margin-right: 8px; border-right: 1px solid var(--gray-200); }
   </style>
 </head>
 <body>
-<div class="container">
 
-  <!-- Header -->
+<!-- Login Screen -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="icon">🏖️</div>
+    <h2>Acesso ao Sistema</h2>
+    <div class="error-msg" id="loginError"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>Usuário</label>
+        <input type="text" id="loginUser" placeholder="Ex: Prime ou Supervisor" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="loginPass" required autocomplete="off">
+      </div>
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- Main App -->
+<div class="container" id="appContainer">
+
   <div class="header">
     <h1>🏖️ Sistema de Férias</h1>
     <p>Gerencie as solicitações de férias da equipe</p>
+    <div class="user-badge">
+      👤 <span id="currentUserDisplay">Usuário</span>
+      <button onclick="logout()">[Sair]</button>
+    </div>
   </div>
 
   <!-- Funcionários -->
-  <div class="card">
+  <div class="card supervisor-only" style="display: none;">
     <div class="section-head">
       <h2>👥 Funcionários Cadastrados <span id="connBadge" class="conn-badge"><span class="conn-dot"></span> conectando...</span></h2>
       <button class="btn btn-primary" onclick="openAddEmpModal()">➕ Novo Funcionário</button>
@@ -210,7 +234,6 @@
               <select id="name" required>
                 <option value="">— Selecione —</option>
               </select>
-              <button type="button" class="btn-add-inline" title="Novo funcionário" onclick="openAddEmpModal()">＋</button>
             </div>
           </div>
 
@@ -255,6 +278,7 @@
     <div class="section-body">
       <div class="stats-bar">
         <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total de Solicitações</div></div>
+        <div class="stat-card"><div class="num" id="statApproved" style="color:var(--success)">—</div><div class="lbl">Aprovadas</div></div>
         <div class="stat-card"><div class="num" id="statDays" style="color:var(--warning)">—</div><div class="lbl">Dias Corridos Totais</div></div>
       </div>
       <div class="table-header">
@@ -263,13 +287,19 @@
       </div>
       <div class="filters">
         <input type="text" id="filterName" placeholder="🔍 Buscar por nome..." oninput="renderTable()" />
+        <select id="filterStatus" onchange="renderTable()">
+          <option value="">Todos os status</option>
+          <option value="Aguardando">⏳ Aguardando aprovação</option>
+          <option value="Aprovado">✅ Aprovado</option>
+          <option value="Reprovado">❌ Reprovado</option>
+        </select>
       </div>
       <div class="table-wrapper">
         <table id="vacationTable" style="display:none">
           <thead>
             <tr>
               <th>#</th><th>Funcionário</th><th>Início</th><th>Término</th>
-              <th>Dias Corridos</th><th>Situação</th><th>Observações</th><th>Ações</th>
+              <th>Dias</th><th>Situação</th><th>Observações</th><th>Ações</th>
             </tr>
           </thead>
           <tbody id="tableBody">
@@ -325,45 +355,104 @@
   </div>
 </div>
 
+<!-- Modal: Mudar Status -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal">
+    <h3>📋 Alterar Status</h3>
+    <p id="statusModalText" style="color:var(--gray-700);margin-bottom:16px"></p>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn btn-success" onclick="updateStatus('Aprovado')">✅ Aprovar</button>
+      <button class="btn btn-danger" onclick="updateStatus('Reprovado')">❌ Reprovar</button>
+      <button class="btn btn-outline" onclick="updateStatus('Aguardando')">⏳ Voltar para Aguardando</button>
+    </div>
+    <div style="text-align:right;margin-top:16px">
+      <button class="btn btn-outline" style="border:none" onclick="closeStatusModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
+  // ─── Autenticação Local (Simples) ──────────────────────────────────────────
+  const USERS = {
+    'prime': { pass: '123456', role: 'prime', label: 'Prime' },
+    'supervisor': { pass: '@Merinode26', role: 'supervisor', label: 'Supervisor' }
+  };
+  
+  let currentUser = null;
+
+  function checkLogin() {
+    const saved = localStorage.getItem('vacationUser');
+    if (saved && USERS[saved.toLowerCase()]) {
+      currentUser = USERS[saved.toLowerCase()];
+      document.body.classList.toggle('is-supervisor', currentUser.role === 'supervisor');
+      document.getElementById('currentUserDisplay').textContent = currentUser.label;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appContainer').style.display = 'flex';
+      initApp();
+    } else {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('appContainer').style.display = 'none';
+    }
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value.trim().toLowerCase();
+    const p = document.getElementById('loginPass').value;
+    const err = document.getElementById('loginError');
+    
+    if (USERS[u] && USERS[u].pass === p) {
+      localStorage.setItem('vacationUser', u);
+      err.textContent = '';
+      checkLogin();
+    } else {
+      err.textContent = 'Usuário ou senha incorretos.';
+    }
+  });
+
+  function logout() {
+    localStorage.removeItem('vacationUser');
+    currentUser = null;
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    checkLogin();
+  }
+
+
   // ─── Configuração do Supabase ─────────────────────────────────────────────
   const SUPABASE_URL = 'https://ijupwbwiziugkiymakax.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdXB3Yndpeml1Z2tpeW1ha2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDk1ODUsImV4cCI6MjA4ODM4NTU4NX0.JXcKMfFg_2k6mXxpulekuLStb2PFfjRvaYNyAcPw6kA';
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ─── Estado global da aplicação ───────────────────────────────────────────
-  let employees     = [];   // lista de funcionários carregada do banco
-  let requests      = [];   // lista de solicitações carregada do banco
-  let deleteId      = null; // id da solicitação a ser excluída
-  let deleteEmpId   = null; // id do funcionário a ser excluído
-  let editId        = null; // id da solicitação em edição (null = nova)
-  let selectedDays  = null; // quantidade de dias selecionada (20 ou 30)
+  let employees     = [];
+  let requests      = [];
+  let deleteId      = null;
+  let deleteEmpId   = null;
+  let statusId      = null;
+  let editId        = null;
+  let selectedDays  = null;
 
   // ─── Funções utilitárias ──────────────────────────────────────────────────
-  // Formata data de yyyy-mm-dd para dd/mm/yyyy
   const fmt = str => { if(!str) return '-'; const [y,m,d]=str.split('-'); return `${d}/${m}/${y}`; };
-  // Adiciona N dias corridos a uma data e retorna no formato yyyy-mm-dd
   const addDays = (s,n) => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n-1); return d.toISOString().slice(0,10); };
-  // Calcula a diferença em dias corridos entre duas datas (inclusive)
   const diffDays = (s,e) => Math.round((new Date(e+'T00:00:00')-new Date(s+'T00:00:00'))/86400000)+1;
 
-  // Exibe uma notificação temporária na tela
   function showToast(msg, type='success') {
     const t=document.getElementById('toast');
     t.textContent=msg; t.className=`toast ${type} show`;
     setTimeout(()=>t.className='toast',3000);
   }
 
-  // Atualiza o badge de status da conexão com o Supabase
   function setConnBadge(ok) {
     const b=document.getElementById('connBadge');
+    if(!b) return;
     b.className=`conn-badge ${ok?'ok':'err'}`;
     b.innerHTML=`<span class="conn-dot"></span> ${ok?'Supabase conectado':'Erro de conexão'}`;
   }
 
-  // Coloca um botão em estado de carregamento (spinner) ou restaura seu texto
   function setBtnLoading(id, loading, text) {
     const btn=document.getElementById(id);
     if(!btn) return;
@@ -385,19 +474,23 @@
     const sel =document.getElementById('name');
     const cur =sel.value;
 
-    if(employees.length===0){
-      list.innerHTML='<span class="emp-empty">Nenhum funcionário cadastrado.</span>';
-    } else {
-      list.innerHTML=employees.map(e=>`
-        <span class="emp-chip">
-          ${e.name}
-          <button title="Remover" onclick="openDeleteEmpModal('${e.id}','${e.name.replace(/'/g,"\\'")}')">✕</button>
-        </span>`).join('');
+    if(list) {
+      if(employees.length===0){
+        list.innerHTML='<span class="emp-empty">Nenhum funcionário cadastrado.</span>';
+      } else {
+        list.innerHTML=employees.map(e=>`
+          <span class="emp-chip">
+            ${e.name}
+            <button title="Remover" onclick="openDeleteEmpModal('${e.id}','${e.name.replace(/'/g,"\\'")}')">✕</button>
+          </span>`).join('');
+      }
     }
 
-    sel.innerHTML='<option value="">— Selecione —</option>'+
-      [...employees].sort((a,b)=>a.name.localeCompare(b.name))
-        .map(e=>`<option value="${e.name}" ${e.name===cur?'selected':''}>${e.name}</option>`).join('');
+    if(sel) {
+      sel.innerHTML='<option value="">— Selecione —</option>'+
+        [...employees].sort((a,b)=>a.name.localeCompare(b.name))
+          .map(e=>`<option value="${e.name}" ${e.name===cur?'selected':''}>${e.name}</option>`).join('');
+    }
   }
 
   function openAddEmpModal(){
@@ -479,12 +572,14 @@
     if(!start)       { showToast('Informe a data de início.','error'); return; }
 
     const days=diffDays(start,end);
-    const payload={ employee_name:name, start_date:start, end_date:end, days, notes };
+    
+    // Fallback if status column doesn't exist yet on DB
+    const payload={ employee_name:name, start_date:start, end_date:end, days, notes, status: 'Aguardando aprovação - Solicitar no Portal do RH' };
 
     setBtnLoading('submitBtn',true,'');
     let error;
     if(editId){
-      ({error}=await db.from('vacation_requests').update(payload).eq('id',editId));
+      ({error}=await db.from('vacation_requests').update({ employee_name:name, start_date:start, end_date:end, days, notes }).eq('id',editId));
     } else {
       ({error}=await db.from('vacation_requests').insert(payload));
     }
@@ -505,9 +600,35 @@
     document.getElementById('submitBtn').textContent='➕ Adicionar Solicitação';
   }
 
+  function getStatusHTML(statusStr) {
+    if(!statusStr) statusStr = 'Aguardando';
+    const s = statusStr.toLowerCase();
+    
+    if (s.includes('aprovado')) {
+      return `<span class="pill-status aprovado">✅ Aprovado</span>`;
+    } else if (s.includes('reprovado')) {
+      return `<span class="pill-status reprovado">❌ Reprovado</span>`;
+    } else {
+      return `<span class="pill-status aguardando">⏳ Aguardando aprovação<br><small style="font-size:0.7rem;font-weight:normal;opacity:0.8">Solicitar no Portal do RH</small></span>`;
+    }
+  }
+
   function renderTable(){
-    const filter=document.getElementById('filterName').value.toLowerCase();
-    const filtered=requests.filter(r=>r.employee_name.toLowerCase().includes(filter));
+    const filterName=document.getElementById('filterName').value.toLowerCase();
+    const filterStatus=document.getElementById('filterStatus').value.toLowerCase();
+    
+    const filtered=requests.filter(r=> {
+      const matchName = r.employee_name.toLowerCase().includes(filterName);
+      const dbStatus = (r.status || 'aguardando').toLowerCase();
+      let matchStatus = true;
+      
+      if(filterStatus === 'aprovado') matchStatus = dbStatus.includes('aprovado');
+      else if(filterStatus === 'reprovado') matchStatus = dbStatus.includes('reprovado');
+      else if(filterStatus === 'aguardando') matchStatus = !dbStatus.includes('aprovado') && !dbStatus.includes('reprovado');
+      
+      return matchName && matchStatus;
+    });
+
     const tbody=document.getElementById('tableBody');
     const empty=document.getElementById('emptyState');
     const table=document.getElementById('vacationTable');
@@ -521,18 +642,57 @@
       <td>${fmt(r.start_date)}</td>
       <td>${fmt(r.end_date)}</td>
       <td><span class="days-num">${r.days}</span></td>
-      <td><span class="pill-solicitado">⏳ Aguardando aprovação<br><small style="font-size:0.7rem;font-weight:normal;opacity:0.8">Solicitar no Portal do RH</small></span></td>
+      <td>${getStatusHTML(r.status)}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.notes||''}">${r.notes||'—'}</td>
       <td><div class="row-actions">
+        ${currentUser && currentUser.role === 'supervisor' ? `
+          <div class="approval-actions">
+            <button class="btn-icon approve" title="Aprovar / Reprovar" onclick="openStatusModal('${r.id}','${r.employee_name.replace(/'/g,"\\'")}')">🔄</button>
+          </div>
+        ` : ''}
         <button class="btn-icon edit" title="Editar" onclick="editRow('${r.id}')">✏️</button>
+        ${currentUser && currentUser.role === 'supervisor' ? `
         <button class="btn-icon" title="Excluir" onclick="openDeleteModal('${r.id}','${r.employee_name.replace(/'/g,"\\'")}')">🗑️</button>
+        ` : ''}
       </div></td>
     </tr>`).join('');
 
+    const approvedCount = requests.filter(r => (r.status||'').toLowerCase().includes('aprovado')).length;
+
     document.getElementById('countBadge').textContent=requests.length;
     document.getElementById('statTotal').textContent =requests.length;
+    document.getElementById('statApproved').textContent = approvedCount;
     document.getElementById('statDays').textContent  =requests.reduce((a,r)=>a+r.days,0);
   }
+
+  // ─── Mudança de Status (Aprovação) ────────────────────────────────────────
+  function openStatusModal(id, name) {
+    statusId = id;
+    document.getElementById('statusModalText').textContent = `Defina a situação para as férias de ${name}:`;
+    document.getElementById('statusModal').classList.add('open');
+  }
+
+  function closeStatusModal() {
+    document.getElementById('statusModal').classList.remove('open');
+    statusId = null;
+  }
+
+  async function updateStatus(newStatus) {
+    if(!statusId) return;
+    
+    let statusText = 'Aguardando aprovação - Solicitar no Portal do RH';
+    if(newStatus === 'Aprovado') statusText = 'Aprovado';
+    if(newStatus === 'Reprovado') statusText = 'Reprovado';
+
+    const {error}=await db.from('vacation_requests').update({ status: statusText }).eq('id',statusId);
+    
+    if(error){ showToast(error.message,'error'); return; }
+    
+    closeStatusModal();
+    await loadRequests();
+    showToast(`Situação alterada para: ${newStatus}`);
+  }
+
 
   function editRow(id){
     const r=requests.find(x=>x.id===id);
@@ -573,7 +733,7 @@
     if(requests.length===0){ showToast('Nenhuma solicitação para exportar.','error'); return; }
     const data=[
       ['#','Funcionário','Data Início','Data Término','Dias Corridos','Situação','Observações','Cadastrado em'],
-      ...requests.map((r,i)=>[i+1,r.employee_name,fmt(r.start_date),fmt(r.end_date),r.days,'Aguardando aprovação - Solicitar no Portal do RH',r.notes||'',new Date(r.created_at).toLocaleDateString('pt-BR')])
+      ...requests.map((r,i)=>[i+1,r.employee_name,fmt(r.start_date),fmt(r.end_date),r.days,r.status||'Aguardando aprovação - Solicitar no Portal do RH',r.notes||'',new Date(r.created_at).toLocaleDateString('pt-BR')])
     ];
     const ws=XLSX.utils.aoa_to_sheet(data);
     ws['!cols']=[{wch:4},{wch:38},{wch:14},{wch:14},{wch:14},{wch:50},{wch:30},{wch:16}];
@@ -595,11 +755,15 @@
   document.getElementById('addEmpModal').addEventListener('click',function(e){if(e.target===this)closeEmpModal();});
   document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)closeDeleteModal();});
   document.getElementById('deleteEmpModal').addEventListener('click',function(e){if(e.target===this)closeDeleteEmpModal();});
+  document.getElementById('statusModal').addEventListener('click',function(e){if(e.target===this)closeStatusModal();});
 
   // ─── Inicialização da aplicação ───────────────────────────────────────────
-  (async()=>{
+  async function initApp() {
     await Promise.all([loadEmployees(), loadRequests()]);
-  })();
+  }
+  
+  // Verifica se está logado ao abrir
+  checkLogin();
 </script>
 </body>
 </html>
